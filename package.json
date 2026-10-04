@@ -1,0 +1,10 @@
+{
+  "name": "simple-player",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A small LAN music player for F:\\Music",
+  "main": "server.js",
+  "dependencies": {
+    "music-metadata": "^11.15.0"
+  }
+}

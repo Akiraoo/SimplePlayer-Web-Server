@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16181a">
+<link rel="icon" href="/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>Simple Player</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark"><img src="/icon-192.png" alt="Simple Player"></div><div class="brand-copy"><b>Simple Player</b><span>LAN MUSIC</span></div></div>
+    <div class="top-actions"><button id="discordBtn" class="icon-btn discord-btn" type="button" title="連結 Discord" aria-label="連結 Discord"><svg class="discord-logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.54 5.07A16.8 16.8 0 0 0 15.4 3.8l-.5 1.02a15.2 15.2 0 0 0-5.8 0L8.6 3.8a16.8 16.8 0 0 0-4.14 1.27C1.85 8.83 1.14 12.5 1.5 16.12a16.7 16.7 0 0 0 5.08 2.58l1.24-1.68c-.68-.25-1.33-.56-1.94-.93l.48-.37c3.76 1.76 7.84 1.76 11.55 0l.49.37c-.62.37-1.27.68-1.95.93l1.24 1.68a16.7 16.7 0 0 0 5.08-2.58c.42-4.2-.72-7.83-3.23-11.05ZM8.54 14.4c-1.1 0-2-.99-2-2.2s.88-2.2 2-2.2c1.13 0 2.02.99 2 2.2 0 1.21-.88 2.2-2 2.2Zm6.92 0c-1.1 0-2-.99-2-2.2s.88-2.2 2-2.2c1.13 0 2.02.99 2 2.2 0 1.21-.88 2.2-2 2.2Z" fill="currentColor"/></svg><span class="discord-check" aria-hidden="true">✓</span></button><button id="refreshBtn" class="icon-btn" title="重新掃描">↻</button><button id="themeBtn" class="icon-btn" title="切換亮度" aria-label="切換亮度">◐</button></div>
+  </header>
+
+  <div class="workspace">
+    <aside class="sidebar">
+      <button class="nav-item active" data-view="Library"><span class="nav-icon">▦</span><span>全部歌曲</span><span id="libraryCount" class="nav-count">0</span></button>
+      <div class="sidebar-divider"></div>
+      <div id="playlistList" class="playlist-list"></div>
+    </aside>
+
+    <main class="main">
+      <div class="toolbar">
+        <div class="title-block"><div class="title-row"><h1 id="currentName">全部歌曲</h1><button id="sharePlaylistBtn" class="icon-btn playlist-share-btn" type="button" title="分享這個歌單" aria-label="分享這個歌單" hidden>↗</button></div><span id="countLine">0 tracks</span></div>
+        <label class="search"><span>⌕</span><input id="search" autocomplete="off" placeholder="搜尋曲名、檔名…"><kbd>/</kbd></label>
+      </div>
+      <button id="mobilePlaylistBtn" class="mobile-playlist-btn" aria-haspopup="dialog" aria-expanded="false">
+        <span class="mobile-playlist-icon">☰</span><span class="mobile-playlist-label">全部歌曲</span><span class="mobile-playlist-chevron">›</span>
+      </button>
+
+      <div class="content-grid">
+        <section class="track-panel">
+          <div class="library-wrap">
+            <table class="tracks">
+              <colgroup><col class="col-num"><col class="col-title"><col class="col-type"><col class="col-size"><col class="col-share"></colgroup>
+              <thead><tr><th class="num">#</th><th>曲目</th><th>格式</th><th class="sizecol">大小</th><th class="sharecol">分享</th></tr></thead>
+              <tbody id="trackBody"></tbody>
+            </table>
+            <div id="empty" class="empty" hidden><div class="empty-icon">♪</div><b>沒有找到歌曲</b><span>換個關鍵字，或重新掃描音樂庫。</span></div>
+          </div>
+        </section>
+
+        <aside class="lyrics-panel">
+          <div class="lyrics-head"><span class="section-label">LYRICS</span><span id="lyricsState">等待播放</span></div>
+          <div id="lyrics" class="lyrics"><div class="lyrics-empty">這首歌沒有可用的內嵌歌詞</div></div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <footer class="player">
+    <div class="now-playing" id="nowPlaying" role="button" tabindex="0" aria-label="開啟目前播放">
+      <div id="cover" class="cover"><span>♪</span></div>
+      <div class="nowtext"><strong id="nowTitle">尚未播放</strong><span id="nowArtist">選一首歌開始播放</span></div>
+    </div>
+    <div class="play-center"><div class="desktop-spectrum"><canvas id="desktopSpectrum" aria-label="音頻可視化"></canvas></div><div class="progress"><span id="cur">0:00</span><input id="seek" type="range" min="0" max="1000" value="0"><span id="dur">0:00</span></div><div class="controls"><button id="prev" class="transport">⏮</button><button id="play" class="play-btn" aria-label="播放"></button><button id="next" class="transport">⏭</button></div></div>
+    <div class="player-right"><div class="volume"><button id="mute" class="icon-btn volume-icon" type="button" aria-label="靜音">
+        <img class="volume-img volume-img-normal" src="/speaker.png" alt="" aria-hidden="true">
+        <img class="volume-img volume-img-muted" src="/muted.png" alt="" aria-hidden="true">
+      </button><input id="volume" type="range" min="0" max="1" step="0.01" value="0.9"></div></div>
+    <div class="mini-progress" id="miniProgress"></div>
+  </footer>
+</div>
+<div id="discordOverlay" class="playlist-overlay" hidden>
+  <div class="playlist-sheet discord-sheet" role="dialog" aria-modal="true" aria-labelledby="discordSheetTitle">
+    <div class="playlist-sheet-head"><strong id="discordSheetTitle">Discord</strong><button id="discordClose" class="icon-btn" type="button" aria-label="關閉">✕</button></div>
+    <div class="discord-panel">
+      <div id="discordStatus" class="discord-status">尚未連結 Discord</div>
+      <div id="discordAccount" class="discord-account" hidden></div>
+      <div class="discord-actions"><button id="discordLogin" class="primary-btn" type="button">連結 Discord</button><button id="discordLogout" class="secondary-btn" type="button" hidden>解除連結</button></div>
+      <small class="discord-note">登入資料只保存在此瀏覽器，不會送到 Simple Player 伺服器。</small>
+    </div>
+  </div>
+</div>
+<div id="playlistOverlay" class="playlist-overlay" hidden>
+  <div class="playlist-sheet" role="dialog" aria-modal="true" aria-labelledby="playlistSheetTitle">
+    <div class="playlist-sheet-head"><strong id="playlistSheetTitle">播放清單</strong><button id="playlistClose" class="icon-btn" aria-label="關閉">✕</button></div>
+    <div id="mobilePlaylistList" class="mobile-playlist-list"></div>
+  </div>
+</div>
+<div id="nowPlayingOverlay" class="now-overlay" hidden>
+  <div class="now-sheet" role="dialog" aria-modal="true" aria-labelledby="expandedTitle">
+    <div class="now-sheet-head"><button id="nowClose" class="icon-btn now-close" aria-label="縮小"><span aria-hidden="true"></span></button><span>正在播放</span><span class="now-sheet-spacer" aria-hidden="true"></span></div>
+    <div class="expanded-body">
+      <div class="expanded-cover" id="expandedCover"><span>♪</span></div>
+      <div class="expanded-meta"><strong id="expandedTitle">尚未播放</strong><span id="expandedArtist">選一首歌開始播放</span></div>
+      <div class="expanded-spectrum"><canvas id="spectrum" aria-label="音頻可視化"></canvas></div>
+      <div class="expanded-progress"><span id="expandedCur">0:00</span><input id="expandedSeek" type="range" min="0" max="1000" value="0"><span id="expandedDur">0:00</span></div>
+      <div class="expanded-controls"><button id="expandedPrev" class="expanded-transport">⏮</button><button id="expandedPlay" class="expanded-play" aria-label="播放"></button><button id="expandedNext" class="expanded-transport">⏭</button></div>
+      <div class="expanded-lyrics" id="expandedLyrics"><div class="lyrics-empty">這首歌沒有可用的內嵌歌詞</div></div>
+    </div>
+  </div>
+</div>
+<audio id="audio" preload="metadata" playsinline></audio>
+<script src="/app.js"></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(e=>console.warn("Service Worker registration failed:",e)));}</script>
+</body>
+</html>
