@@ -92,7 +92,7 @@ Cache 也會保存封面及其他必要資料。
 
 Android Client：
 
-[SimplePlayer-android-app](https://github.com/Akiraoo/SimplePlayer-android-app?utm_source=chatgpt.com)
+[SimplePlayer-android-app](https://github.com/Akiraoo/SimplePlayer-android-app)
 
 Android Client 透過 Mobile API 與本 Server 通訊。
 
@@ -155,4 +155,4 @@ Apache-2.0
 
 Android Client：
 
-[SimplePlayer-android-app](https://github.com/Akiraoo/SimplePlayer-android-app?utm_source=chatgpt.com)
+[SimplePlayer-android-app](https://github.com/Akiraoo/SimplePlayer-android-app)
