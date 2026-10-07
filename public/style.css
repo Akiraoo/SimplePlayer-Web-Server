@@ -24,7 +24,7 @@ body{overflow:hidden}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 15px;background:var(--bar);border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:9px}.brand-mark{width:25px;height:25px;border:1px solid var(--cover-border);border-radius:4px;display:grid;place-items:center;background:var(--hover);overflow:hidden}.brand-mark img{display:block;width:100%;height:100%;object-fit:cover;filter:none!important;-webkit-filter:none!important}
 .brand-copy{display:flex;flex-direction:column;line-height:1.05}.brand-copy b{font-size:13px;font-weight:650;color:var(--text-strong)}.brand-copy span{font-size:8px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-top:4px}
-.top-actions{display:flex;gap:3px}.discord-btn{width:30px;height:30px;padding:6px;display:grid;place-items:center;position:relative}.discord-logo{width:18px;height:18px;display:block}.discord-check{position:absolute;right:2px;bottom:1px;font-size:8px;line-height:1;color:var(--button-fg);background:var(--bar);border-radius:50%;padding:1px}.icon-btn{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:var(--button-fg);cursor:pointer;font-size:16px;padding:6px;border-radius:4px}.icon-btn:hover{background:var(--hover);color:var(--text-strong)}
+.top-actions{display:flex;gap:3px}.icon-btn{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:var(--button-fg);cursor:pointer;font-size:16px;padding:6px;border-radius:4px}.icon-btn:hover{background:var(--hover);color:var(--text-strong)}
 .workspace{min-height:0;display:grid;grid-template-columns:250px minmax(0,1fr)}
 .sidebar{min-height:0;display:flex;flex-direction:column;background:var(--bar);border-right:1px solid var(--line);padding:15px 9px}.section-label{font-size:9px;letter-spacing:.16em;color:var(--muted);font-weight:700}
 .nav-item{width:100%;height:33px;display:grid;grid-template-columns:21px 1fr auto;align-items:center;margin-top:4px;padding:0 9px;border:0;border-radius:4px;background:transparent;color:var(--muted);text-align:left;cursor:pointer;font-size:12px}.nav-item:hover{background:var(--hover);color:var(--text)}.nav-item.active{background:var(--active);color:var(--text-strong);box-shadow:inset 2px 0 var(--button-bg)}.nav-icon{color:var(--muted);font-size:13px}.nav-count,.pl-count{font-size:10px;color:var(--faint)}
@@ -44,14 +44,13 @@ body{overflow:hidden}
 input[type=range]{appearance:none;-webkit-appearance:none;background:transparent;cursor:pointer}input[type=range]::-webkit-slider-runnable-track{height:3px;border-radius:3px;background:linear-gradient(to right,var(--range-fill) 0%,var(--range-fill) var(--range-progress,0%),var(--range-track) var(--range-progress,0%),var(--range-track) 100%)}input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:9px;height:9px;margin-top:-3px;border-radius:50%;border:0;background:var(--range-thumb)}input[type=range]::-moz-range-track{height:3px;border-radius:3px;background:var(--range-track)}input[type=range]::-moz-range-progress{height:3px;border-radius:3px;background:var(--range-fill)}input[type=range]::-moz-range-thumb{width:9px;height:9px;border:0;border-radius:50%;background:var(--range-thumb)}
 .player-right{display:flex;justify-content:flex-end}.volume{display:flex;align-items:center;gap:5px;width:125px}.volume-icon{position:relative;width:24px;height:24px;padding:0;display:grid;place-items:center;flex:0 0 24px;color:var(--button-fg);overflow:hidden}.volume-img{display:block;width:20px;height:20px;object-fit:contain;filter:var(--volume-icon-filter)}.volume-icon.muted .volume-img-normal{display:none}.volume-icon.muted .volume-img-muted{display:block}.volume-img-muted{display:none;width:18px;height:18px}.volume-icon:hover{color:var(--text-strong)}
 
-/* Shared overlay primitives: keep Discord/playlist sheets from flashing as raw text on desktop. */
+/* Shared overlay primitives: keep playlist sheets from flashing as raw text on desktop. */
 .playlist-overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;background:rgba(0,0,0,.5)}
 .playlist-overlay[hidden]{display:none!important}
 .playlist-sheet{width:min(100%,420px);max-height:min(72vh,560px);display:flex;flex-direction:column;background:var(--bar);border-top:1px solid var(--line);border-radius:12px 12px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.35);padding-bottom:env(safe-area-inset-bottom)}
 .playlist-sheet-head{height:52px;flex:0 0 52px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--line)}
 .playlist-sheet-head strong{font-size:13px;font-weight:650;color:var(--text-strong)}
-.discord-sheet{margin:0 auto}
-@media(min-width:901px){.playlist-overlay{align-items:center;justify-content:center;background:rgba(0,0,0,.55)}.playlist-sheet{border:1px solid var(--line);border-radius:10px;max-height:80vh}.discord-sheet{width:min(420px,calc(100% - 32px))}}
+@media(min-width:901px){.playlist-overlay{align-items:center;justify-content:center;background:rgba(0,0,0,.55)}.playlist-sheet{border:1px solid var(--line);border-radius:10px;max-height:80vh}}
 @media(max-width:900px){
   html,body{height:100%;width:100%;overflow:hidden}
   .app{height:100dvh;min-height:0;width:100%;display:flex;flex-direction:column;overflow:hidden}
@@ -214,6 +213,5 @@ input[type=range]{appearance:none;-webkit-appearance:none;background:transparent
   .now-sheet-spacer{width:34px;height:34px;display:block;flex:0 0 34px}
 }
 
-.discord-sheet{max-width:420px}.discord-panel{padding:16px 18px 20px}.discord-status{font-size:14px;color:var(--text-strong);margin-bottom:8px}.discord-account{font-size:13px;color:var(--text-muted);margin-bottom:14px}.discord-actions{display:flex;gap:8px;flex-wrap:wrap}.primary-btn,.secondary-btn{appearance:none;border:1px solid var(--border);border-radius:7px;padding:9px 13px;cursor:pointer;font:inherit}.primary-btn{background:var(--button-bg);color:var(--button-text);border-color:var(--button-bg)}.secondary-btn{background:transparent;color:var(--button-fg)}.discord-note{display:block;margin-top:14px;color:var(--text-muted);line-height:1.5}
 
 .cover-art{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}.cover.has-image .cover-art{display:block}

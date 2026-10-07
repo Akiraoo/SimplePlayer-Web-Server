@@ -1,0 +1,8 @@
+# Local settings and generated data
+config.json
+playlists.json
+.metadata-cache/
+Music/
+
+# Dependencies
+node_modules/

@@ -14,7 +14,7 @@
 <div class="app">
   <header class="topbar">
     <div class="brand"><div class="brand-mark"><img src="/icon-192.png" alt="Simple Player"></div><div class="brand-copy"><b>Simple Player</b><span>LAN MUSIC</span></div></div>
-    <div class="top-actions"><button id="discordBtn" class="icon-btn discord-btn" type="button" title="連結 Discord" aria-label="連結 Discord"><svg class="discord-logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.54 5.07A16.8 16.8 0 0 0 15.4 3.8l-.5 1.02a15.2 15.2 0 0 0-5.8 0L8.6 3.8a16.8 16.8 0 0 0-4.14 1.27C1.85 8.83 1.14 12.5 1.5 16.12a16.7 16.7 0 0 0 5.08 2.58l1.24-1.68c-.68-.25-1.33-.56-1.94-.93l.48-.37c3.76 1.76 7.84 1.76 11.55 0l.49.37c-.62.37-1.27.68-1.95.93l1.24 1.68a16.7 16.7 0 0 0 5.08-2.58c.42-4.2-.72-7.83-3.23-11.05ZM8.54 14.4c-1.1 0-2-.99-2-2.2s.88-2.2 2-2.2c1.13 0 2.02.99 2 2.2 0 1.21-.88 2.2-2 2.2Zm6.92 0c-1.1 0-2-.99-2-2.2s.88-2.2 2-2.2c1.13 0 2.02.99 2 2.2 0 1.21-.88 2.2-2 2.2Z" fill="currentColor"/></svg><span class="discord-check" aria-hidden="true">✓</span></button><button id="refreshBtn" class="icon-btn" title="重新掃描">↻</button><button id="themeBtn" class="icon-btn" title="切換亮度" aria-label="切換亮度">◐</button></div>
+    <div class="top-actions"><button id="refreshBtn" class="icon-btn" title="重新掃描">↻</button><button id="themeBtn" class="icon-btn" title="切換亮度" aria-label="切換亮度">◐</button></div>
   </header>
 
   <div class="workspace">
@@ -65,17 +65,6 @@
       </button><input id="volume" type="range" min="0" max="1" step="0.01" value="0.9"></div></div>
     <div class="mini-progress" id="miniProgress"></div>
   </footer>
-</div>
-<div id="discordOverlay" class="playlist-overlay" hidden>
-  <div class="playlist-sheet discord-sheet" role="dialog" aria-modal="true" aria-labelledby="discordSheetTitle">
-    <div class="playlist-sheet-head"><strong id="discordSheetTitle">Discord</strong><button id="discordClose" class="icon-btn" type="button" aria-label="關閉">✕</button></div>
-    <div class="discord-panel">
-      <div id="discordStatus" class="discord-status">尚未連結 Discord</div>
-      <div id="discordAccount" class="discord-account" hidden></div>
-      <div class="discord-actions"><button id="discordLogin" class="primary-btn" type="button">連結 Discord</button><button id="discordLogout" class="secondary-btn" type="button" hidden>解除連結</button></div>
-      <small class="discord-note">登入資料只保存在此瀏覽器，不會送到 Simple Player 伺服器。</small>
-    </div>
-  </div>
 </div>
 <div id="playlistOverlay" class="playlist-overlay" hidden>
   <div class="playlist-sheet" role="dialog" aria-modal="true" aria-labelledby="playlistSheetTitle">
