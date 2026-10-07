@@ -14,29 +14,55 @@ Simple Player 的自架音樂串流 Web Server。
 * Web Player
 * Mobile API
 * Android Client 支援
-* M4A / AAC 等格式轉碼為 FLAC
+* M4A 自動轉碼為 FLAC 串流
 * 支援區域網路存取
 * 可搭配反向代理與 DDNS 使用
 
+## 支援格式
+
+MP3、FLAC、M4A、AAC、OGG / OGA、Opus、WAV、WebM。
+
+其中 M4A 會在第一次播放時由 FFmpeg 轉碼為 FLAC 再串流，轉好的檔案會快取起來，之後播放不需要再轉；其他格式直接以原檔串流。
+
 ## Requirements
 
-* Windows
-* Node.js
+* Windows（`start.bat` 為 Windows 批次檔；`server.js` 本身可在 Linux / macOS 執行，見下方說明）
+* Node.js（建議使用 LTS 版本）
+* FFmpeg（需加入 PATH，用於 M4A 轉碼）
 * 一個存放音樂檔案的資料夾
 
-建議使用 Node.js 的 LTS 版本。
+FFmpeg 可用以下任一方式安裝：
+
+```powershell
+winget install Gyan.FFmpeg
+```
+
+```powershell
+choco install ffmpeg
+```
+
+安裝後請重新開啟終端機，並以 `ffmpeg -version` 確認可以執行。`start.bat` 啟動時若找不到 FFmpeg 會顯示提示並結束。
 
 ## 使用方式
 
-將專案下載或 Clone 後，編輯 `config.json` 設定音樂資料夾與其他必要設定，再執行：
+1. 下載或 Clone 本專案。
+2. 將 `config.example.json` 複製一份並命名為 `config.json`，依需要修改音樂資料夾等設定。
+
+   也可以略過這一步，直接執行 `start.bat`，Server 第一次啟動時會自動產生預設的 `config.json`（音樂資料夾為專案內的 `Music`）。
+3. 執行：
 
 ```
 start.bat
 ```
 
-`start.bat` 會自動處理 Node.js 套件安裝並啟動 Simple Player Server。
+`start.bat` 會檢查 FFmpeg、自動處理 Node.js 套件安裝，並啟動 Simple Player Server，不需要另外手動執行 `npm install`。
 
-不需要另外手動執行 `npm install`。
+### Linux / macOS
+
+```bash
+npm install
+node server.js
+```
 
 ## 設定檔 `config.json`
 
@@ -64,7 +90,21 @@ start.bat
 
 環境變數 `PUBLIC_ORIGIN` 若存在，會**覆寫** `config.json` 的 `publicOrigin`，方便臨時執行或 CI 使用：
 
+PowerShell：
+
+```powershell
+$env:PUBLIC_ORIGIN="https://other.example.com"; node server.js
 ```
+
+命令提示字元（cmd）：
+
+```bat
+set "PUBLIC_ORIGIN=https://other.example.com" && node server.js
+```
+
+Linux / macOS：
+
+```bash
 PUBLIC_ORIGIN=https://other.example.com node server.js
 ```
 
@@ -135,6 +175,16 @@ Cache 也會保存封面及其他必要資料。
 
 伺服器的 Cache 不會取代原始音樂檔案，刪除 Cache 不會刪除音樂。
 
+Cache 預設位於 `.metadata-cache/`（可用 `cacheDir` 修改）：
+
+| 資料夾         | 內容                    |
+| ----------- | --------------------- |
+| `metadata/` | 每首歌的標題、歌手、專輯與歌詞       |
+| `covers/`   | 從音樂檔案取出的封面            |
+| `m4a-flac/` | M4A 轉碼後的 FLAC 檔       |
+
+整個 `.metadata-cache/` 可以隨時刪除，Server 下次啟動時會重新建立。`m4a-flac/` 會隨著播放過的 M4A 越來越大，可以定期清理，被刪掉的檔案會在下次播放時重新轉碼。
+
 Android Client 另外維護一份裝置本地的 Metadata Cache，兩者互相獨立：
 
 ```
@@ -169,7 +219,7 @@ http://192.168.0.100:8788
 
 ## 分享頁
 
-Web Player 提供兩種分享連結：
+Web Player 提供以下分享與下載連結：
 
 | 路徑              | 用途                                |
 | --------------- | --------------------------------- |
@@ -187,14 +237,6 @@ Simple Player 可以搭配 Nginx、Cloudflare 或其他反向代理使用。
 
 若使用反向代理，建議將 `publicOrigin` 設為對外的 HTTPS 網址，讓分享頁的 OGP meta 產生正確的絕對 URL。
 
-### 安全性注意事項
-
-Simple Player **沒有內建帳號或存取驗證**。任何能連到 Server 的人都可以瀏覽曲庫、播放與下載歌曲，以及觸發重新掃描。
-
-* 只在區域網路使用時，請勿在路由器上對外開放 8787 / 8788 Port。
-* 需要從外部存取時，建議透過 VPN（例如 Tailscale、WireGuard），或在反向代理層加上存取控制（例如 Cloudflare Access）。
-* `POST /api/scan` 在 10 秒內重複呼叫會直接回傳上一次的掃描結果（回應帶有 `"cached": true`），避免被連續觸發造成負載。
-
 範例 Nginx 設定：
 
 ```nginx
@@ -210,6 +252,22 @@ server {
     }
 }
 ```
+
+Web Server（8787）同樣提供完整的 Mobile API，因此反向代理只需要轉發 8787 即可，不必另外對外開放 8788。
+
+此時 Android Client 直接填入對外網址即可，例如：
+
+```
+https://music.example.com
+```
+
+## 安全性注意事項
+
+Simple Player **沒有內建帳號或存取驗證**。任何能連到 Server 的人都可以瀏覽曲庫、播放與下載歌曲，以及觸發重新掃描。
+
+* 只在區域網路使用時，請勿在路由器上對外開放 8787 / 8788 Port。
+* 需要從外部存取時，建議透過 VPN（例如 Tailscale、WireGuard），或在反向代理層加上存取控制（例如 Cloudflare Access）。
+* `POST /api/scan` 在 10 秒內重複呼叫會直接回傳上一次的掃描結果（回應帶有 `"cached": true`），避免被連續觸發造成負載。
 
 ## 專案結構
 
