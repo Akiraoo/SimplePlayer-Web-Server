@@ -1,8 +1,8 @@
 {
-  "name": "simple-player",
+  "name": "simple-player-web-server",
   "private": true,
-  "version": "1.0.0",
-  "description": "A small LAN music player for F:\\Music",
+  "version": "1.2.0",
+  "description": "A simple music player and stream server.",
   "main": "server.js",
   "dependencies": {
     "music-metadata": "^11.15.0"

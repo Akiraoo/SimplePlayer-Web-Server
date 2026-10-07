@@ -10,7 +10,7 @@ const ffmpegPath = 'ffmpeg';
 const PORT = 8787;
 const MOBILE_PORT = 8788;
 const CONFIG_FILE = path.join(__dirname, 'config.json');
-const DEFAULT_CONFIG = { musicDir: 'F:\\Music', cacheDir: 'G:\\.metadata-cache' };
+const DEFAULT_CONFIG = { musicDir: 'Music', cacheDir: '.metadata-cache' };
 function loadConfig(){
   try{
     const raw=JSON.parse(fs.readFileSync(CONFIG_FILE,'utf8'));
@@ -28,14 +28,14 @@ const COVER_CACHE_DIR = path.join(CACHE_DIR, 'covers');
 const TRANSCODE_DIR = path.join(CACHE_DIR, 'm4a-flac');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const PLAYLIST_FILE = path.join(process.cwd(), 'playlists.json');
-const DISCORD_CLIENT_ID = '1552923544420225046';
+const DISCORD_CLIENT_ID = path.join(__dirname, 'discord-client-id.txt');
 const DISCORD_CLIENT_SECRET_FILE = path.join(__dirname, 'discord-client-secret.txt');
-const DISCORD_REDIRECT_URI = 'https://simpleplayer.dpdns.org/';
+const DISCORD_REDIRECT_URI = 'https://(your-own-url)';
 const DISCORD_RPC_PIPES = Array.from({length:10},(_,i)=>`\\\\?\\pipe\\discord-ipc-${i}`);
 const discordPresence = { socket:null, pipeIndex:-1, buffer:Buffer.alloc(0), connected:false, connecting:null, sessionId:null, lastState:null, lastSentAt:0, watchdog:null };
 function discordOriginAllowed(req){
   const origin=String(req.headers.origin||'');
-  return origin==='' || origin==='http://localhost:8787' || origin==='http://127.0.0.1:8787';
+  return origin==='https://(your-own-url)' || origin==='http://localhost:8787' || origin==='http://127.0.0.1:8787';
 }
 function uuid(){return crypto.randomUUID();}
 function rpcFrame(op,payload){
@@ -382,7 +382,7 @@ const handleRequest=async(req,res)=>{try{const u=new URL(req.url,`http://${req.h
   }
   if(p==='/api/discord/token'&&req.method==='POST'){
     if(!discordOriginAllowed(req))return json(res,403,{error:'origin_not_allowed'});
-    try{const b=new URLSearchParams(await readBody(req));if(b.get('grant_type')!=='authorization_code')return json(res,400,{error:'invalid_grant_type'});const data=await discordTokenRequest({grant_type:'authorization_code',code:b.get('code')||'',redirect_uri:DISCORD_REDIRECT_URI,code_verifier:b.get('code_verifier')||''});return json(res,200,data);}catch(e){return json(res,e.status||500,{error:e.discord?.error||'discord_token_exchange_failed',error_description:e.discord?.error_description||e.message});}
+    try{const b=new URLSearchParams(await readBody(req));if(b.get('grant_type')!=='authorization_code')return json(res,400,{error:'invalid_grant_type'});const data=await discordTokenRequest({grant_type:'authorization_code',code:b.get('code')||'',redirect_uri:(b.get('redirect_uri')==='simpleplayer://discord'?'simpleplayer://discord':DISCORD_REDIRECT_URI),code_verifier:b.get('code_verifier')||''});return json(res,200,data);}catch(e){return json(res,e.status||500,{error:e.discord?.error||'discord_token_exchange_failed',error_description:e.discord?.error_description||e.message});}
   }
   if(p==='/api/discord/refresh'&&req.method==='POST'){
     if(!discordOriginAllowed(req))return json(res,403,{error:'origin_not_allowed'});
@@ -445,7 +445,7 @@ const handleRequest=async(req,res)=>{try{const u=new URL(req.url,`http://${req.h
   if(req.socket.localPort===MOBILE_PORT)return json(res,404,{error:'Not found'});
   let rel=p==='/'?'index.html':p.slice(1);rel=decodeURIComponent(rel);const file=path.resolve(PUBLIC_DIR,rel);if(file!==PUBLIC_DIR&&!file.startsWith(PUBLIC_DIR+path.sep))return res.writeHead(403).end();let st;try{st=fs.statSync(file)}catch{return res.writeHead(404).end();}const ext=path.extname(file).toLowerCase();const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.gif':'image/gif','.svg':'image/svg+xml','.ico':'image/x-icon','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json'}[ext]||'application/octet-stream';res.writeHead(200,{'Content-Type':mime,'Cache-Control':ext==='.html'||ext==='.js'||ext==='.css'?'no-cache':'public,max-age=86400'});if(req.method==='HEAD')return res.end();fs.createReadStream(file).pipe(res);
 }catch(e){console.error(e);json(res,500,{error:'Server error'});}};
-function printStatus(){const nets=os.networkInterfaces(),ips=[];for(const xs of Object.values(nets))for(const x of(xs||[]))if(x.family==='IPv4'&&!x.internal)ips.push(x.address);console.log('Simple Player');console.log(`Music dir: ${MUSIC_DIR}`);console.log(`Cache dir: ${CACHE_DIR}`);console.log(`Local: http://localhost:${PORT}`);console.log(`Tracks: ${cachedTracks.length}`);if(!fs.existsSync(MUSIC_DIR))console.warn('F:\\Music does not exist.');for(const ip of ips)console.log(`LAN: http://${ip}:${PORT}`);}
+function printStatus(){const nets=os.networkInterfaces(),ips=[];for(const xs of Object.values(nets))for(const x of(xs||[]))if(x.family==='IPv4'&&!x.internal)ips.push(x.address);console.log('Simple Player');console.log(`Music dir: ${MUSIC_DIR}`);console.log(`Cache dir: ${CACHE_DIR}`);console.log(`Local: http://localhost:${PORT}`);console.log(`Tracks: ${cachedTracks.length}`);if(!fs.existsSync(MUSIC_DIR))console.warn('Music files does not exist.');for(const ip of ips)console.log(`LAN: http://${ip}:${PORT}`);}
 const server=http.createServer(handleRequest);
 process.on('exit',()=>{try{if(discordPresence.socket)discordPresence.socket.write(rpcFrame(1,{cmd:'SET_ACTIVITY',args:{pid:process.pid,activity:null},nonce:uuid()}))}catch{};closeDiscordRpc();if(discordPresence.watchdog)clearInterval(discordPresence.watchdog)});
 const mobileServer=http.createServer(handleRequest);
