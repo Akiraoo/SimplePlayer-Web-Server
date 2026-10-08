@@ -15,6 +15,7 @@ Simple Player 的自架音樂串流 Web Server。
 * Mobile API
 * Android Client 支援
 * M4A 自動轉碼為 FLAC 串流
+* 自動為 FLAC 加入索引表（SEEKTABLE），加快遠端跳轉
 * 支援區域網路存取
 * 可搭配反向代理與 DDNS 使用
 
@@ -29,6 +30,7 @@ MP3、FLAC、M4A、AAC、OGG / OGA、Opus、WAV、WebM。
 * Windows（`start.bat` 為 Windows 批次檔；`server.js` 本身可在 Linux / macOS 執行，見下方說明）
 * Node.js（建議使用 LTS 版本）
 * FFmpeg（需加入 PATH，用於 M4A 轉碼）
+* metaflac（選用，需加入 PATH，用於 FLAC 索引表，見下方「FLAC 索引表」）
 * 一個存放音樂檔案的資料夾
 
 FFmpeg 可用以下任一方式安裝：
@@ -87,6 +89,8 @@ node server.js
 | `musicDir`     | 音樂資料夾路徑。可以是相對路徑（相對於 `server.js`）或絕對路徑                                       | 使用 `Music`                           |
 | `cacheDir`     | Metadata 與封面快取資料夾                                                            | 使用 `.metadata-cache`                |
 | `publicOrigin` | 對外的公開網址，例如 `https://music.example.com`。用於分享頁的 OGP / Twitter meta 絕對 URL | 分享頁使用瀏覽器請求的 Host 產生網址（反向代理時會依 `X-Forwarded-Proto` 判斷 https） |
+| `flacSeekTable` | FLAC 索引表處理方式：`false` 關閉、`"check"` 只檢查、`true` 自動加入。詳見「FLAC 索引表」 | 關閉 |
+| `metaflacPath` | `metaflac` 執行檔路徑 | 使用 PATH 中的 `metaflac` |
 
 環境變數 `PUBLIC_ORIGIN` 若存在，會**覆寫** `config.json` 的 `publicOrigin`，方便臨時執行或 CI 使用：
 
@@ -114,19 +118,19 @@ PUBLIC_ORIGIN=https://other.example.com node server.js
 
 | 功能         | Port |
 | ---------- | ---: |
-| Web Server | 8787 |
-| Mobile API | 8788 |
+| Web Server | 50000 |
+| Mobile API | 55555 |
 
 Web Player：
 
 ```
-http://localhost:8787
+http://localhost:50000
 ```
 
 Mobile API：
 
 ```
-http://localhost:8788
+http://localhost:55555
 ```
 
 如果需要從其他裝置存取，請使用執行 Simple Player Server 的電腦在區域網路中的 IP。
@@ -134,13 +138,13 @@ http://localhost:8788
 例如：
 
 ```
-http://192.168.0.100:8787
+http://192.168.0.100:50000
 ```
 
 Android Client 則使用：
 
 ```
-http://192.168.0.100:8788
+http://192.168.0.100:55555
 ```
 
 請依實際網路環境修改 IP。
@@ -158,8 +162,8 @@ GET /api/config
 ```json
 {
   "publicOrigin": "https://music.example.com",
-  "webPort": 8787,
-  "mobileApiPort": 8788
+  "webPort": 50000,
+  "mobileApiPort": 55555
 }
 ```
 
@@ -199,6 +203,33 @@ Simple Player Mobile API
     └── Music Files
 ```
 
+## FLAC 索引表
+
+沒有 SEEKTABLE 的 FLAC 檔在跳轉時，播放器只能用二分搜尋逐步尋找位置，需要連續發出十幾次請求。在區域網路幾乎感覺不到，但透過反向代理或外網連線時，每次跳轉可能要等好幾秒。
+
+開啟 `flacSeekTable` 後，Server 掃描音樂庫時會檢查新增或變更的 FLAC 檔，並在加入音樂庫之前，以 `metaflac --add-seekpoint=1s` 補上每秒一個索引點：
+
+```json
+{
+  "flacSeekTable": "check"
+}
+```
+
+| 值 | 行為 |
+| --- | --- |
+| `false`（預設） | 關閉 |
+| `"check"` | 只檢查並記錄哪些檔案缺少索引表，不修改檔案 |
+| `true` | 為缺少索引表的檔案加入索引表 |
+
+* 建議先用 `"check"` 執行一次，確認結果後再改成 `true`。
+* 只會寫入 FLAC 開頭的 metadata 區塊，音訊資料不會被改動。
+* 處理後會還原檔案的修改時間，避免 Client 重新同步整個音樂庫。
+* 處理結果記錄在 `seektable.json`（與 `config.json` 同一層，不進版本控制），未變更的檔案下次掃描會直接略過，已移除的歌曲也會一併刪除紀錄。
+* 第一次對大型音樂庫啟用 `true` 時，啟動時間會比較長，進度會顯示在終端機。
+* 修改音樂檔之前，建議先備份。
+
+`metaflac` 包含在官方 FLAC 工具中：<https://xiph.org/flac/download.html>
+
 ## Android Client
 
 本專案可以搭配 Simple Player Android Client 使用。
@@ -214,7 +245,7 @@ Android Client 透過 Mobile API 與本 Server 通訊。
 因此使用 Android Client 時，通常需要填入伺服器電腦的 LAN IP，例如：
 
 ```
-http://192.168.0.100:8788
+http://192.168.0.100:55555
 ```
 
 ## 分享頁
@@ -245,7 +276,7 @@ server {
     server_name music.example.com;
 
     location / {
-        proxy_pass http://127.0.0.1:8787;
+        proxy_pass http://127.0.0.1:50000;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -253,7 +284,7 @@ server {
 }
 ```
 
-Web Server（8787）同樣提供完整的 Mobile API，因此反向代理只需要轉發 8787 即可，不必另外對外開放 8788。
+Web Server（50000）同樣提供完整的 Mobile API，因此反向代理只需要轉發 50000 即可，不必另外對外開放 55555。
 
 此時 Android Client 直接填入對外網址即可，例如：
 
@@ -265,7 +296,7 @@ https://music.example.com
 
 Simple Player **沒有內建帳號或存取驗證**。任何能連到 Server 的人都可以瀏覽曲庫、播放與下載歌曲，以及觸發重新掃描。
 
-* 只在區域網路使用時，請勿在路由器上對外開放 8787 / 8788 Port。
+* 只在區域網路使用時，請勿在路由器上對外開放 50000 / 55555 Port。
 * 需要從外部存取時，建議透過 VPN（例如 Tailscale、WireGuard），或在反向代理層加上存取控制（例如 Cloudflare Access）。
 * `POST /api/scan` 在 10 秒內重複呼叫會直接回傳上一次的掃描結果（回應帶有 `"cached": true`），避免被連續觸發造成負載。
 
@@ -281,6 +312,7 @@ SimplePlayer-Web-Server/
 ├── config.example.json
 ├── .gitignore
 ├── playlists.json         (不進版本控制)
+├── seektable.json         (不進版本控制)
 ├── package.json
 ├── public/
 ├── LICENSE

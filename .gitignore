@@ -1,6 +1,8 @@
 # Local settings and generated data
 config.json
 playlists.json
+seektable.json
+seektable.json.tmp
 .metadata-cache/
 Music/
 

@@ -7,8 +7,8 @@ const { spawn } = require('child_process');
 // Use the FFmpeg installed on the system (e.g. Chocolatey: choco install ffmpeg).
 const ffmpegPath = 'ffmpeg';
 
-const PORT = 8787;
-const MOBILE_PORT = 8788;
+const PORT = 50000;
+const MOBILE_PORT = 55555;
 const CONFIG_FILE = path.join(__dirname, 'config.json');
 const DEFAULT_CONFIG = {
   musicDir: 'Music',
@@ -31,6 +31,7 @@ function loadConfig(){
   // Empty or missing values fall back to the defaults instead of resolving to the working directory.
   const pick=key=>{const v=raw[key];return typeof v==='string'&&v.trim()?v.trim():DEFAULT_CONFIG[key];};
   return {
+    ...raw,
     musicDir: pick('musicDir'),
     cacheDir: pick('cacheDir'),
     publicOrigin: typeof raw.publicOrigin==='string'?raw.publicOrigin:''
@@ -82,6 +83,147 @@ function requestOrigin(req){
 const SCAN_COOLDOWN_MS = 10000;
 let lastScan = null;
 
+// ---------------------------------------------------------------------------
+// FLAC seek tables
+//
+// FLAC files without a SEEKTABLE force players (ExoPlayer, browsers) to find a
+// seek position by binary search: a dozen+ sequential range requests, which is
+// slow through a reverse proxy. With "flacSeekTable" enabled in config.json the
+// scan adds one seek point per second (metaflac --add-seekpoint=1s) to new or
+// changed FLAC files *before* they are added to the library.
+//
+//   "flacSeekTable": false    off (default)
+//   "flacSeekTable": "check"  only detect and record which files lack a table
+//   "flacSeekTable": true     add missing tables (audio data is not touched)
+//   "metaflacPath": "..."     optional, defaults to "metaflac" on PATH
+//
+// Results are recorded per file in seektable.json next to config.json, so
+// unchanged files are skipped on the next scan and removed files are dropped.
+// The file's modification time is restored after metaflac runs, so the change
+// does not make clients resync the track.
+// ---------------------------------------------------------------------------
+const SEEKTABLE_MODE = CONFIG.flacSeekTable === true || CONFIG.flacSeekTable === 'add'
+  ? 'add'
+  : CONFIG.flacSeekTable === 'check' ? 'check' : 'off';
+const METAFLAC = (typeof CONFIG.metaflacPath === 'string' && CONFIG.metaflacPath.trim()) || 'metaflac';
+const SEEKTABLE_FILE = path.join(__dirname, 'seektable.json');
+let seekIndex = loadSeekIndex();
+let metaflacOk = null;
+
+function loadSeekIndex(){
+  try{
+    const d=JSON.parse(fs.readFileSync(SEEKTABLE_FILE,'utf8'));
+    if(d&&typeof d.files==='object'&&d.files)return {version:1,files:d.files};
+  }catch{}
+  return {version:1,files:{}};
+}
+function saveSeekIndex(){
+  try{
+    const tmp=SEEKTABLE_FILE+'.tmp';
+    fs.writeFileSync(tmp,JSON.stringify(seekIndex,null,1));
+    fs.renameSync(tmp,SEEKTABLE_FILE);
+  }catch(e){console.warn('seektable.json write failed:',e.message);}
+}
+// true = has SEEKTABLE, false = FLAC without one, null = not a plain FLAC stream (e.g. ID3-prefixed)
+async function flacHasSeekTable(file){
+  const fh=await fs.promises.open(file,'r');
+  try{
+    const h=Buffer.alloc(4);
+    let r=await fh.read(h,0,4,0);
+    if(r.bytesRead<4||h.toString('latin1')!=='fLaC')return null;
+    let off=4;
+    for(let i=0;i<128;i++){
+      r=await fh.read(h,0,4,off);
+      if(r.bytesRead<4)return false;
+      const last=(h[0]&0x80)!==0, type=h[0]&0x7f, len=h.readUIntBE(1,3);
+      if(type===3)return true;
+      off+=4+len;
+      if(last)return false;
+    }
+    return false;
+  }finally{await fh.close();}
+}
+function runMetaflac(args){
+  return new Promise((resolve,reject)=>{
+    let err='';
+    let p;
+    try{p=spawn(METAFLAC,args,{stdio:['ignore','ignore','pipe'],windowsHide:true});}catch(e){return reject(e);}
+    p.stderr.on('data',d=>{err+=String(d);});
+    p.on('error',reject);
+    p.on('close',code=>code===0?resolve():reject(new Error(err.trim()||`metaflac exited with code ${code}`)));
+  });
+}
+async function checkMetaflac(){
+  if(metaflacOk!==null)return metaflacOk;
+  try{await runMetaflac(['--version']);metaflacOk=true;}
+  catch(e){metaflacOk=false;console.warn(`metaflac not found (${METAFLAC}): ${e.message}. FLAC seek tables will not be added.`);}
+  return metaflacOk;
+}
+// Runs inside a scan, before metadata is read. Updates size/mtime of entries whose file changed.
+async function ensureSeekTables(discovered){
+  if(SEEKTABLE_MODE==='off')return;
+  const files=seekIndex.files;
+  const live=new Set();
+  const todo=[];
+  for(const t of discovered){
+    if(t.ext!=='.flac')continue;
+    live.add(t.path);
+    const prev=files[t.path];
+    if(prev&&prev.size===t.size&&prev.mtime===t.mtime&&prev.status!=='failed'&&!(prev.status==='missing'&&SEEKTABLE_MODE==='add'))continue;
+    todo.push(t);
+  }
+  let removed=0;
+  for(const k of Object.keys(files))if(!live.has(k)){delete files[k];removed++;}
+  if(!todo.length){if(removed)saveSeekIndex();return;}
+  const canAdd=SEEKTABLE_MODE==='add'&&await checkMetaflac();
+  console.log(`Seek tables: checking ${todo.length} FLAC file(s)${canAdd?'':' (check only)'}...`);
+  const count={present:0,added:0,missing:0,failed:0,unsupported:0};
+  let n=0;
+  for(const t of todo){
+    n++;
+    const file=safePath(t.path);
+    const rec=status=>{
+      let st;try{st=fs.statSync(file);}catch{}
+      if(st&&(st.size!==t.size||st.mtimeMs!==t.mtime)){
+        // Tags and cover are untouched by metaflac, so carry the cached metadata over
+        // to the new size/mtime instead of re-parsing the file.
+        try{
+          const mp=metadataCachePath(t.id);
+          const data=JSON.parse(fs.readFileSync(mp,'utf8'));
+          if(Number(data.mtime)===Number(t.mtime)&&Number(data.size)===Number(t.size)){
+            data.mtime=st.mtimeMs;data.size=st.size;fs.writeFileSync(mp,JSON.stringify(data));
+          }
+        }catch{}
+        t.size=st.size;t.mtime=st.mtimeMs;
+      }
+      files[t.path]={size:t.size,mtime:t.mtime,status,at:new Date().toISOString()};
+      count[status]++;
+    };
+    try{
+      const has=await flacHasSeekTable(file);
+      if(has===true){rec('present');}
+      else if(has===null){rec('unsupported');}
+      else if(!canAdd){rec('missing');}
+      else{
+        const before=await fs.promises.stat(file);
+        try{
+          await runMetaflac(['--add-seekpoint=1s',file]);
+        }finally{
+          // Keep the original modification time so clients do not treat the track as changed.
+          try{await fs.promises.utimes(file,before.atimeMs/1000,before.mtimeMs/1000);}catch{}
+        }
+        rec(await flacHasSeekTable(file)===true?'added':'failed');
+      }
+    }catch(e){
+      console.warn(`Seek table failed: ${t.path}: ${e.message}`);
+      rec('failed');
+    }
+    if(n%50===0){saveSeekIndex();console.log(`Seek tables: ${n}/${todo.length}`);}
+  }
+  saveSeekIndex();
+  console.log(`Seek tables: ${count.added} added, ${count.present} already had one, ${count.missing} missing (not modified), ${count.failed} failed, ${count.unsupported} unsupported, ${removed} removed from index`);
+}
+
 const AUDIO_EXTS = new Set(['.mp3','.flac','.m4a','.aac','.ogg','.oga','.opus','.wav','.webm']);
 const MIME = {
   '.mp3':'audio/mpeg','.flac':'audio/flac','.m4a':'audio/mp4','.aac':'audio/aac',
@@ -107,6 +249,7 @@ async function scanLibraryChanges(){
   if(scanPromise)return scanPromise;
   scanPromise=(async()=>{
     const discovered=walk(MUSIC_DIR);
+    await ensureSeekTables(discovered);
     const oldByPath=new Map(cachedTracks.map(t=>[t.path,t]));
     const next=[]; const seen=new Set();
     let added=0,changed=0,removed=0;

@@ -44,6 +44,13 @@ External tools (invoked as subprocesses, not bundled):
     inputs into FLAC. No FFmpeg source code is included in this
     repository.
 
+  - FLAC tools (metaflac), optional
+    License: GPL 2+ (tools) / BSD-3-Clause (libFLAC)
+    https://xiph.org/flac/
+    metaflac is invoked as an external binary to add seek tables to
+    FLAC files when "flacSeekTable" is enabled. No FLAC source code is
+    included in this repository.
+
 --------------------------------------------------------------------------
 
 The full text of the Apache License 2.0 is available in the LICENSE

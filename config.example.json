@@ -1,5 +1,6 @@
 {
   "musicDir": "Music",
   "cacheDir": ".metadata-cache",
-  "publicOrigin": ""
+  "publicOrigin": "",
+  "flacSeekTable": false
 }
