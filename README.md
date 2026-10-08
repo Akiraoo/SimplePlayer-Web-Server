@@ -8,6 +8,7 @@ Simple Player 的自架音樂串流 Web Server。
 
 * 音樂資料夾自動掃描
 * 支援子資料夾與資料夾式播放清單
+* 自訂分享播放清單（搜尋歌曲挑選後產生連結，保存 30 天）
 * 讀取音樂檔案 Metadata
 * 嵌入式封面與歌詞
 * Metadata / Cover 快取
@@ -256,9 +257,28 @@ Web Player 提供以下分享與下載連結：
 | --------------- | --------------------------------- |
 | `/s/<trackId>`  | 單曲分享頁，含播放器、歌詞、OGP meta            |
 | `/p/<playlist>` | 播放清單分享頁，含播放器、歌詞、歌曲選擇面板           |
+| `/c/<id>`       | 自訂播放清單分享頁（30 天後自動失效）           |
 | `/d/<trackId>`  | 直接下載連結（`Content-Disposition: attachment`） |
 
 若設定了 `publicOrigin`，分享頁的 `og:url`、`og:image` 會使用絕對網址，方便在 Discord、Twitter 等平台正確展開預覽卡片。未設定時會使用瀏覽器請求的 Host 產生絕對網址，經過反向代理時會依 `X-Forwarded-Proto` 判斷是否為 https。
+
+## 自訂播放清單
+
+Web Player 側邊欄（手機版在播放清單選單裡）和 Android Client 的歌單頁面都有「建立自訂播放清單」按鈕：搜尋歌曲、點選加入，按下「建立連結」後會得到 `/c/<id>` 分享連結。
+
+* 清單存在 Server 的 `custom-playlists.json`（與 `config.json` 同一層，不進版本控制），建立後 **30 天自動刪除**，連結隨之失效。
+* 建立清單的瀏覽器或手機會在本地記住「我的分享清單」，可以再次分享或提前刪除；過期的項目會自動移除。
+* 每個清單最多 500 首歌，Server 上同時最多保存 2000 個清單。
+
+API：
+
+| 方法 | 路徑 | 說明 |
+| ---- | ---- | ---- |
+| `POST` | `/api/custom-playlists` | Body：`{"name": "...", "tracks": ["<trackId>", ...]}`，回傳 `id`、`expiresAt`、`deleteToken` |
+| `GET` | `/api/custom-playlists/<id>` | 取得清單內容 |
+| `DELETE` | `/api/custom-playlists/<id>` | 需帶 `X-Delete-Token` header（建立時回傳的 `deleteToken`） |
+
+由於 Server 沒有帳號機制，任何能連到 Server 的人都可以建立清單；對外開放時請參考下方「安全性注意事項」。
 
 ## 反向代理
 
@@ -312,6 +332,7 @@ SimplePlayer-Web-Server/
 ├── config.example.json
 ├── .gitignore
 ├── playlists.json         (不進版本控制)
+├── custom-playlists.json  (不進版本控制)
 ├── seektable.json         (不進版本控制)
 ├── package.json
 ├── public/

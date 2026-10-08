@@ -20,8 +20,10 @@
   <div class="workspace">
     <aside class="sidebar">
       <button class="nav-item active" data-view="Library"><span class="nav-icon">▦</span><span>全部歌曲</span><span id="libraryCount" class="nav-count">0</span></button>
+      <button id="customCreateBtn" class="nav-item custom-create-btn" type="button"><span class="nav-icon">＋</span><span>建立自訂播放清單</span></button>
       <div class="sidebar-divider"></div>
       <div id="playlistList" class="playlist-list"></div>
+      <div id="customSection" class="custom-section" hidden><div class="custom-section-head section-label">我的分享清單</div><div id="customListBox" class="custom-list-box"></div></div>
     </aside>
 
     <main class="main">
@@ -69,7 +71,9 @@
 <div id="playlistOverlay" class="playlist-overlay" hidden>
   <div class="playlist-sheet" role="dialog" aria-modal="true" aria-labelledby="playlistSheetTitle">
     <div class="playlist-sheet-head"><strong id="playlistSheetTitle">播放清單</strong><button id="playlistClose" class="icon-btn" aria-label="關閉">✕</button></div>
+    <button id="mobileCustomCreateBtn" class="custom-create-row" type="button"><span>＋</span><span>建立自訂播放清單</span></button>
     <div id="mobilePlaylistList" class="mobile-playlist-list"></div>
+    <div id="mobileCustomSection" class="custom-section mobile-custom-section" hidden><div class="custom-section-head section-label">我的分享清單</div><div id="mobileCustomListBox" class="custom-list-box"></div></div>
   </div>
 </div>
 <div id="nowPlayingOverlay" class="now-overlay" hidden>
@@ -85,6 +89,34 @@
     </div>
   </div>
 </div>
+<div id="customOverlay" class="custom-overlay" hidden>
+  <div class="custom-sheet" role="dialog" aria-modal="true" aria-labelledby="customTitle">
+    <div class="custom-head"><button id="customBack" class="icon-btn" type="button" aria-label="返回" hidden>←</button><strong id="customTitle">自訂播放清單</strong><button id="customClose" class="icon-btn" type="button" aria-label="關閉">✕</button></div>
+    <div id="customHome" class="custom-home">
+      <div class="custom-start">
+        <button id="customPickList" class="custom-start-btn primary" type="button"><b>☑ 直接選擇</b><span>回到歌曲列表，點一下反白選取，可以切換歌單和搜尋</span></button>
+        <button id="customPickSearch" class="custom-start-btn" type="button"><b>⌕ 搜尋加入</b><span>在這裡搜尋曲名、歌手，點一下加入</span></button>
+      </div>
+      <div class="custom-section-head section-label">我的分享清單</div>
+      <div id="customHomeList" class="custom-home-list"></div>
+    </div>
+    <div id="customEditor" class="custom-editor" hidden>
+      <input id="customName" class="custom-input" maxlength="80" autocomplete="off" placeholder="清單名稱（選填）">
+      <label class="search custom-search"><span>⌕</span><input id="customSearch" autocomplete="off" placeholder="搜尋曲名、歌手、專輯…"></label>
+      <div id="customHint" class="custom-hint">已選的歌曲</div>
+      <div id="customResults" class="custom-results"></div>
+      <div class="custom-footer"><span id="customCount">已選 0 首</span><button id="customToList" class="custom-btn" type="button">到列表選取</button><button id="customClear" class="custom-btn" type="button">清空</button><button id="customSubmit" class="custom-btn primary" type="button" disabled>建立連結</button></div>
+    </div>
+    <div id="customDone" class="custom-done" hidden>
+      <div class="custom-done-icon">✓</div>
+      <b id="customDoneName"></b>
+      <div class="custom-link-row"><input id="customLink" class="custom-input" readonly><button id="customCopy" class="custom-btn primary" type="button">複製</button></div>
+      <span class="custom-done-note">連結會保存 30 天，之後自動刪除。</span>
+      <div class="custom-done-actions"><a id="customOpen" class="custom-btn" target="_blank" rel="noopener">開啟</a><button id="customAgain" class="custom-btn" type="button">回到清單</button></div>
+    </div>
+  </div>
+</div>
+<div id="selectBar" class="select-bar" hidden><span id="selectCount">已選 0 首</span><button id="selectAll" class="custom-btn" type="button">全選這頁</button><button id="selectCancel" class="custom-btn" type="button">取消</button><button id="selectDone" class="custom-btn primary" type="button" disabled>下一步</button></div>
 <audio id="audio" preload="metadata" playsinline></audio>
 <script src="/app.js"></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(e=>console.warn("Service Worker registration failed:",e)));}</script>
